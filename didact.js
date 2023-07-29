@@ -38,6 +38,20 @@ function render(element, container) {
   container.appendChild(domNode);
 }
 
+let nextUnitOfWork = null;
+
+function workLoop(deadline) {
+  let shouldYield = false;
+  while (nextUnitOfWork && !shouldYield) {
+    nextUnitOfWork = performUnitOfWork();
+
+    shouldYield = deadline < 1;
+    requestIdleCallback();
+  }
+}
+
+function performUnitOfWork() {}
+
 const Didact = {
   createElement,
   render,
