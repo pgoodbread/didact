@@ -43,14 +43,19 @@ let nextUnitOfWork = null;
 function workLoop(deadline) {
   let shouldYield = false;
   while (nextUnitOfWork && !shouldYield) {
-    nextUnitOfWork = performUnitOfWork();
+    nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
 
-    shouldYield = deadline < 1;
-    requestIdleCallback();
+    shouldYield = deadline.timeRemaining() < 1;
+    requestIdleCallback(workLoop);
   }
 }
 
-function performUnitOfWork() {}
+requestIdleCallback(workLoop);
+
+function performUnitOfWork(unit) {
+  // TODO REST
+  return nextUnit;
+}
 
 const Didact = {
   createElement,
