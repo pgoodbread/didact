@@ -22,20 +22,31 @@ function createTextElement(text) {
   };
 }
 
-function render(element, container) {
+function createDomNode(fiber) {
   const domNode =
-    element.type === "TEXT_ELEMENT"
+    fiber.type === "TEXT_ELEMENT"
       ? document.createTextNode("")
       : document.createElement(element.type);
-  element.props.children.forEach((child) => render(child, domNode));
+  // element.props.children.forEach((child) => render(child, domNode));
 
   // apply all props that are not children to domNode
   const isNotChildren = (key) => key !== "children";
-  Object.keys(element.props)
+  Object.keys(fiber.props)
     .filter(isNotChildren)
-    .forEach((prop) => (domNode[prop] = element.props[prop]));
+    .forEach((prop) => (domNode[prop] = fiber.props[prop]));
 
-  container.appendChild(domNode);
+  // container.appendChild(domNode);
+  return domNode;
+}
+
+function render(element, container) {
+  // this is a fiber
+  nextUnitOfWork = {
+    domNode: container,
+    props: {
+      children: [element],
+    },
+  };
 }
 
 let nextUnitOfWork = null;
@@ -52,9 +63,52 @@ function workLoop(deadline) {
 
 requestIdleCallback(workLoop);
 
-function performUnitOfWork(unit) {
-  // TODO REST
-  return nextUnit;
+function performUnitOfWork(fiber) {
+  // add dom node
+  if (!fiber.domNode) {
+    fiber.domNode = createDomNode(fiber);
+  }
+
+  if (fiber.parent) {
+    fiber.parent.domNode.appendChild(fiber.domNode);
+  }
+
+  // create new fibers for children
+  const children = fiber.props.children;
+  let index = 0;
+  // tracks the previous sibling fiber
+  let prevSibling = null;
+
+  while (index < children.length) {
+    const childElement = children[index];
+
+    const newFiber = {
+      type: childElement.type,
+      props: childElement.props,
+      parent: fiber,
+      domNode: null,
+    };
+
+    if (index === 0) {
+      fiber.child = newFiber;
+    } else {
+      prevSibling.sibling = newFiber;
+    }
+
+    // move pointer to next fiber
+    prevSibling = newFiber;
+    index++;
+  }
+
+  // return next unit of work
+  if (fiber.child) {
+    return fiber.child;
+  }
+  let currentFiber = fiber;
+  while (currentFiber) {
+    if (currentFiber.sibling) return currentFiber.sibling;
+    currentFiber = currentFiber.parent;
+  }
 }
 
 const Didact = {
